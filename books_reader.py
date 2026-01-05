@@ -35,31 +35,28 @@ def parse_price(value):
 
 
 def clean_author(raw_author):
-    """
-    Extract main author(s) from the raw author string.
-    """
     if not raw_author:
         return None
-
-    # Split by commas
     authors = raw_author.split(",")
-
-    # Take first author and remove parentheses
     main_author = re.sub(r"\(.*?\)", "", authors[0]).strip()
-
-    # Normalize name (remove duplicates like 'F. Scott Fitzgerald, Francis Scott Fitzgerald')
     return main_author
 
 
 def normalize_text(text):
-    """
-    Remove accents/diacritics and lowercase for searching
-    """
     if not text:
         return ""
     text = unicodedata.normalize('NFKD', text)
     text = "".join(c for c in text if not unicodedata.combining(c))
     return text.lower()
+
+
+def normalize_title_for_sort(title):
+    if not title:
+        return ""
+    new_title = unicodedata.normalize("NFKD", title)
+    new_title = "".join(c for c in new_title if not unicodedata.combining(c))
+    new_title = re.sub(r"[^a-zA-Z0-9\s]", "", new_title)
+    return new_title.lower().strip()
 
 # ---------- Main reader ----------
 
@@ -80,7 +77,8 @@ def read_books(csv_path="books.csv"):
                 "bookId": row.get("bookId"),
                 "title": row.get("title"),
                 "series": row.get("series"),
-                "author": row.get("author"),
+                "author": main_author,
+                "author_normalized": normalize_text(main_author),
                 "rating": parse_float(row.get("rating")),
                 "description": row.get("description"),
                 "language": row.get("language"),

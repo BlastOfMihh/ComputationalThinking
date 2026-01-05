@@ -2,6 +2,7 @@ import os
 import streamlit as st
 from books_reader import read_books
 from books_reader import normalize_text
+from books_reader import normalize_title_for_sort
 from image_downloader import get_book_cover
 
 # ---------- Data ----------
@@ -65,6 +66,13 @@ def filter_by_author(author, books_list):
     ]
     return results
 
+def sort_by_title(books_list):
+    sorted_list = sorted(
+        books_list,
+        key=lambda x: normalize_title_for_sort(x["title"])
+    )
+    return sorted_list
+
 # ---------- App UI ----------
 
 st.set_page_config(page_title="Library Helper", layout="wide")
@@ -94,54 +102,99 @@ if option == "Search by title":
             st.error("Book not found ❌")
 
 # ---------- OPTION 2: Filter by author ----------
-elif option == "Filter by author": 
-    author = st.text_input("Enter author name") 
-    if st.button("Filter"): 
+elif option == "Filter by author":     
+    author = st.text_input("Enter author name")
+    if st.button("Filter"):
         if not author.strip(): 
             st.error("Please enter an author name") 
         else: 
-            found = [
-                b for b in books 
-                if b["author"] and author.lower() in b["author"].lower() 
-                ] 
-            if found: 
-                st.success(f"Found {len(found)} books") 
-                for book in sorted(found, key=lambda x: x["title"]): 
-                    display_book(book) 
-            else: 
+            found_books = filter_by_author(author, books)
+            if found_books:
+                st.success(f"Found {len(found_books)} books")
+                for book in sort_by_title(found_books):
+                    display_book(book)
+            else:
                 st.warning("No books found")
 
 
 # ---------- OPTION 3: Sort ----------
 elif option == "Sort alphabetically":
+    col_per_page, col_letter, col_page= st.columns([1, 2, 1])
 
-    BOOKS_PER_PAGE = st.selectbox("Books per page", [5, 10, 20], index=1)
-    sorted_books = sorted(books, key=lambda x: x["title"].lower())
+    with col_per_page:
+        BOOKS_PER_PAGE = st.selectbox("Books per page", [5, 10, 20], index=1)
 
+    sorted_books = sort_by_title(books)
+
+    # ---------- Session state ----------
     if "page" not in st.session_state:
         st.session_state.page = 0
 
-    total_pages = (len(sorted_books) - 1) // BOOKS_PER_PAGE + 1
+    if "letter" not in st.session_state:
+        st.session_state.letter = "All"
+
+    # ---------- A–Z Quick Jump ----------
+    letters = ["All"] + list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+    with col_letter:
+        selected_letter = st.selectbox(
+            "Jump to letter:",
+            letters,
+            index=letters.index(st.session_state.letter)
+        )
+
+    # Reset page if letter changes
+    if selected_letter != st.session_state.letter:
+        st.session_state.letter = selected_letter
+        st.session_state.page = 0
+
+    # Filter by starting letter
+    if selected_letter != "All":
+        filtered_books = [
+            b for b in sorted_books
+            if normalize_title_for_sort(b["title"]).startswith(selected_letter.lower())
+        ]
+    else:
+        filtered_books = sorted_books
+
+    # ---------- Pagination ----------
+    total_pages = max(1, (len(filtered_books) - 1) // BOOKS_PER_PAGE + 1)
+
+    with col_page:
+        st.number_input(
+            "Go to page:",
+            min_value=1,
+            max_value=total_pages,
+            value=st.session_state.page + 1,
+            step=1,
+            key="page_input"
+        )
+
+    st.session_state.page = st.session_state.page_input - 1
+
     col_prev, col_info, col_next = st.columns([1, 2, 1])
 
     with col_prev:
-        if st.button("⬅ Previous") and st.session_state.page > 0:
-            st.session_state.page -= 1
+        if st.button("⬅ Previous"): 
+            if st.session_state.page > 0: 
+                st.session_state.page -= 1 
+            else: 
+                st.session_state.page = total_pages - 1
 
     with col_next:
         if st.button("Next ➡") and st.session_state.page < total_pages - 1:
             st.session_state.page += 1
 
     with col_info:
-        st.markdown(
-            f"**Page {st.session_state.page + 1} of {total_pages}**"
-        )
+        st.markdown(f"**Page {st.session_state.page + 1} of {total_pages}**")
 
+    # ---------- Display ----------
     start = st.session_state.page * BOOKS_PER_PAGE
     end = start + BOOKS_PER_PAGE
 
     st.markdown("---")
 
-    for book in sorted_books[start:end]:
+    for book in filtered_books[start:end]:
         display_book(book)
+
 
