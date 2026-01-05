@@ -21,11 +21,10 @@ def rating_to_stars(rating, max_stars=5):
 
     stars = "⭐" * full_stars
     if half_star:
-        stars += "✰"
+        stars += "⭐" 
     stars += "✰" * empty_stars
 
     return f"{rating:.1f}/5  {stars}"
-
 
 
 def display_book(book):
@@ -46,6 +45,66 @@ def display_book(book):
         st.markdown(f"**Pages:** {book['pages'] or 'N/A'}")
         st.markdown(f"**Price:** {book['price'] if book['price'] else 'N/A'}")
         st.markdown("---")
+
+
+def paginate_items(items, page_key, page_input_key, items_per_page):
+    total_pages = max(1, (len(items) - 1) // items_per_page + 1)
+
+    if page_key not in st.session_state:
+        st.session_state[page_key] = 0
+
+    if page_input_key not in st.session_state:
+        st.session_state[page_input_key] = 1
+
+    def go_to_page():
+        st.session_state[page_key] = st.session_state[page_input_key] - 1
+
+    def prev_page():
+        st.session_state[page_key] = (
+            st.session_state[page_key] - 1
+            if st.session_state[page_key] > 0
+            else total_pages - 1
+        )
+        st.session_state[page_input_key] = st.session_state[page_key] + 1
+
+    def next_page():
+        st.session_state[page_key] = (
+            st.session_state[page_key] + 1
+            if st.session_state[page_key] < total_pages - 1
+            else 0
+        )
+        st.session_state[page_input_key] = st.session_state[page_key] + 1
+
+    st.number_input(
+        "Go to page:",
+        min_value=1,
+        max_value=total_pages,
+        step=1,
+        key=page_input_key,
+        on_change=go_to_page
+    )
+
+    col_prev, col_info, col_next = st.columns([1, 10, 1], vertical_alignment="bottom")
+
+    with col_prev:
+        st.button("⬅ Previous", on_click=prev_page, key=f"{page_key}_prev")
+
+    with col_info:
+        st.markdown(
+            f"Page {st.session_state[page_key]+1} of {total_pages}",
+            text_alignment="center"
+        )
+
+    with col_next:
+        st.button("Next ➡", on_click=next_page, key=f"{page_key}_next")
+
+    start = st.session_state[page_key] * items_per_page
+    end = start + items_per_page
+
+    st.markdown("---")
+
+    return items[start:end]
+
 
 # ---------- Helper Functions --------
 
@@ -75,10 +134,10 @@ def sort_by_title(books_list):
 
 # ---------- App UI ----------
 
-st.set_page_config(page_title="Library Helper", layout="wide")
+st.set_page_config(page_title="Bookscape", layout="wide")
 
-st.title("📚 Library Helper")
-st.caption("A mini app for managing a simple library")
+st.title("📚 Bookscape")
+st.caption("thousands of books at your fingertips, through this digital librarian")
 
 option = st.radio(
     "Choose an option:",
@@ -88,52 +147,119 @@ option = st.radio(
 
 # ---------- OPTION 1: Search ----------
 if option == "Search by title":
-    title = st.text_input("Enter the book title")
-    if st.button("Search"):
-        result = next(
-            (b for b in books if b["title"] and b["title"].lower() == title.lower()),
-            None
+
+    col_query, col_case, col_per_page = st.columns([2, 1, 1], vertical_alignment="bottom")
+
+    with col_query:
+        query = st.text_input("Search title (min. 3 characters)")
+
+    with col_case:
+        case_sensitive = st.checkbox("Case sensitive")
+
+    with col_per_page:
+        BOOKS_PER_PAGE = st.selectbox("Books per page", [5, 10, 20], index=1)
+
+    if "search_page" not in st.session_state:
+        st.session_state.search_page = 0
+
+    if "last_query" not in st.session_state:
+        st.session_state.last_query = ""
+
+    if query and len(query.strip()) < 3:
+        st.warning("Please enter at least 3 characters")
+        st.stop()
+
+    if query != st.session_state.last_query:
+        st.session_state.last_query = query
+        st.session_state.search_page = 0
+
+    if query:
+        if case_sensitive:
+            results = [
+                b for b in books
+                if b["title"] and query in b["title"]
+            ]
+        else:
+            query_norm = query.lower()
+            results = [
+                b for b in books
+                if b["title"] and query_norm in b["title"].lower()
+            ]
+
+        if not results:
+            st.error("No books found ❌")
+            st.stop()
+
+        paginated_results = paginate_items(
+            results,
+            page_key="search_page",
+            page_input_key="search_page_input",
+            items_per_page=BOOKS_PER_PAGE
         )
 
-        if result:
-            st.success("Book found")
-            display_book(result)
-        else:
-            st.error("Book not found ❌")
+        for book in paginated_results:
+            display_book(book)
+
 
 # ---------- OPTION 2: Filter by author ----------
-elif option == "Filter by author":     
-    author = st.text_input("Enter author name")
-    if st.button("Filter"):
-        if not author.strip(): 
-            st.error("Please enter an author name") 
-        else: 
-            found_books = filter_by_author(author, books)
-            if found_books:
-                st.success(f"Found {len(found_books)} books")
-                for book in sort_by_title(found_books):
-                    display_book(book)
-            else:
-                st.warning("No books found")
+elif option == "Filter by author":
+    col_author, col_page, col_per_page= st.columns([2, 1, 1], vertical_alignment="bottom")
+
+    with col_author:
+        author = st.text_input("Enter author name")
+
+    with col_per_page:
+        BOOKS_PER_PAGE = st.selectbox("Books per page", [5, 10, 20], index=1)
+
+    if "author_page" not in st.session_state:
+        st.session_state.author_page = 0
+
+    if "last_author" not in st.session_state:
+        st.session_state.last_author = ""
+
+    if author:
+        if not author.strip():
+            st.error("Please enter an author name")
+            st.stop()
+
+        if author != st.session_state.last_author:
+            st.session_state.last_author = author
+            st.session_state.author_page = 0
+
+        found_books = filter_by_author(author, books)
+
+        if not found_books:
+            st.warning("No books found")
+            st.stop()
+
+        found_books = sort_by_title(found_books)
+
+        paginated_books = paginate_items(
+            found_books,
+            page_key="author_page",
+            page_input_key="author_page_input",
+            items_per_page=BOOKS_PER_PAGE
+        )
+
+        for book in paginated_books:
+            display_book(book)
 
 
 # ---------- OPTION 3: Sort ----------
 elif option == "Sort alphabetically":
-    col_per_page, col_letter, col_page= st.columns([1, 2, 1])
+    col_letter, col_page, col_per_page= st.columns([2, 1, 1], vertical_alignment="bottom")
 
     with col_per_page:
         BOOKS_PER_PAGE = st.selectbox("Books per page", [5, 10, 20], index=1)
 
     sorted_books = sort_by_title(books)
 
-    # ---------- Session state ----------
     if "page" not in st.session_state:
         st.session_state.page = 0
 
     if "letter" not in st.session_state:
         st.session_state.letter = "All"
 
-    # ---------- A–Z Quick Jump ----------
     letters = ["All"] + list("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
     with col_letter:
@@ -143,12 +269,10 @@ elif option == "Sort alphabetically":
             index=letters.index(st.session_state.letter)
         )
 
-    # Reset page if letter changes
     if selected_letter != st.session_state.letter:
         st.session_state.letter = selected_letter
         st.session_state.page = 0
 
-    # Filter by starting letter
     if selected_letter != "All":
         filtered_books = [
             b for b in sorted_books
@@ -157,44 +281,13 @@ elif option == "Sort alphabetically":
     else:
         filtered_books = sorted_books
 
-    # ---------- Pagination ----------
-    total_pages = max(1, (len(filtered_books) - 1) // BOOKS_PER_PAGE + 1)
+    paginated_books = paginate_items(
+        filtered_books,
+        page_key="page",
+        page_input_key="page_input",
+        items_per_page=BOOKS_PER_PAGE
+    )
 
-    with col_page:
-        st.number_input(
-            "Go to page:",
-            min_value=1,
-            max_value=total_pages,
-            value=st.session_state.page + 1,
-            step=1,
-            key="page_input"
-        )
-
-    st.session_state.page = st.session_state.page_input - 1
-
-    col_prev, col_info, col_next = st.columns([1, 2, 1])
-
-    with col_prev:
-        if st.button("⬅ Previous"): 
-            if st.session_state.page > 0: 
-                st.session_state.page -= 1 
-            else: 
-                st.session_state.page = total_pages - 1
-
-    with col_next:
-        if st.button("Next ➡") and st.session_state.page < total_pages - 1:
-            st.session_state.page += 1
-
-    with col_info:
-        st.markdown(f"**Page {st.session_state.page + 1} of {total_pages}**")
-
-    # ---------- Display ----------
-    start = st.session_state.page * BOOKS_PER_PAGE
-    end = start + BOOKS_PER_PAGE
-
-    st.markdown("---")
-
-    for book in filtered_books[start:end]:
+    for book in paginated_books:
         display_book(book)
-
-
+        
