@@ -20,7 +20,39 @@ Iteration 4. Data processing, predictions OR machine learning method OR regressi
 
 `python -m streamlit run yourscript.py`
 
+---
 
+## ML Features (Iteration 4)
+
+AI-powered book recommendations using semantic search.
+
+### Configuration
+
+Edit `ml/settings.json`:
+
+```json
+{
+    "ml_enabled": true,
+    "provider": "local",
+    "local_model": "minilm"
+}
+```
+
+### Disable ML
+
+Set `"ml_enabled": false` to hide all ML features.
+
+### Providers
+
+| Provider | Setup |
+|----------|-------|
+| `local` | No setup needed. Models: `minilm`, `gemma-300m`, `qwen-0.6b`, `qwen-8b` |
+| `lmstudio` | Run [LM Studio](https://lmstudio.ai/) server on port 1234 |
+| `gemini` | Add API key to `ml/api_key.txt` |
+
+First run generates embeddings for all books (~5 min). Cached for subsequent runs.
+
+---
 
 notes for me :
 

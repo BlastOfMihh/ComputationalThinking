@@ -26,7 +26,6 @@ class Settings:
         
         self.batch_size = self._data.get("batch_size", 512)
         self.batch_delay_seconds = self._data.get("batch_delay_seconds", 1)
-        self.lower_embeddings = self._data.get("lower_embeddings", True)
         self.text_column = self._data.get("text_column", "description")
         
         self.provider = self._data.get("provider", "lmstudio")

@@ -53,12 +53,12 @@ def render_cache_selector():
         selected_local_model = settings.local_model
         
     elif new_provider == "local":
-        local_models = ["minilm", "gemma-300m", "qwen-0.6b", "qwen-8b"]
+        local_models = ["minilm", "bge-small", "qwen-1.5b", "qwen-7b"]
         model_labels = {
             "minilm": "MiniLM (fast, 80MB)",
-            "gemma-300m": "BGE Small (fast, 130MB)",
-            "qwen-0.6b": "Qwen2 1.5B (good, 3GB)",
-            "qwen-8b": "Qwen2 7B (best, 14GB)",
+            "bge-small": "BGE Small (fast, 130MB)",
+            "qwen-1.5b": "Qwen2 1.5B (good, 3GB)",
+            "qwen-7b": "Qwen2 7B (best, 14GB)",
         }
         
         current_index = local_models.index(settings.local_model) if settings.local_model in local_models else 0

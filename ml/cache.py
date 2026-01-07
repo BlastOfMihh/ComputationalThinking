@@ -10,6 +10,15 @@ from langchain_community.vectorstores import FAISS
 from ml.settings import Settings
 
 
+class DummyEmbeddings:
+    """Dummy embeddings for loading FAISS index without loading the actual model."""
+    def embed_documents(self, texts):
+        raise NotImplementedError("Use real embeddings for new text")
+    
+    def embed_query(self, text):
+        raise NotImplementedError("Use real embeddings for new text")
+
+
 def _ensure_cache_dir():
     Settings().cache_dir.mkdir(parents=True, exist_ok=True)
 
@@ -30,18 +39,15 @@ def load_embeddings_cache(cache_dir_name: str) -> dict:
 
 
 @st.cache_resource
-def load_vectorstore(cache_dir_name: str, provider: str, local_model: str) -> Optional[FAISS]:
-    from ml.providers import get_embeddings
-    
+def load_vectorstore(cache_dir_name: str) -> Optional[FAISS]:
     settings = Settings()
     faiss_path = settings.ml_dir / cache_dir_name / settings.faiss_index_dir
     
     if faiss_path.exists():
         print(f"Loading FAISS index from {faiss_path}...")
-        embeddings_model = get_embeddings(provider, local_model)
         return FAISS.load_local(
             str(faiss_path),
-            embeddings_model,
+            DummyEmbeddings(),
             allow_dangerous_deserialization=True
         )
     
@@ -55,7 +61,7 @@ def get_current_embeddings_cache() -> dict:
 
 def get_current_vectorstore() -> Optional[FAISS]:
     settings = Settings()
-    return load_vectorstore(settings.cache_dir_name, settings.provider, settings.local_model)
+    return load_vectorstore(settings.cache_dir_name)
 
 
 def save_embeddings_cache(cache: dict):
@@ -70,7 +76,6 @@ def initialize_vectorstore(books_df: pd.DataFrame) -> FAISS:
     from ml.providers import get_current_embeddings
     
     settings = Settings()
-    embeddings_model = get_current_embeddings()
     cache = dict(get_current_embeddings_cache())
     
     books_to_embed = []
@@ -84,13 +89,15 @@ def initialize_vectorstore(books_df: pd.DataFrame) -> FAISS:
             books_to_embed.append({
                 "book_id": book_id,
                 "title": row.get("title", ""),
-                "text": str(text).lower() if settings.lower_embeddings else str(text)
+                "text": str(text)
             })
     
+    # Only load the model if we need to embed new books
     if books_to_embed:
+        embeddings_model = get_current_embeddings()
         _embed_books(books_to_embed, embeddings_model, cache, settings)
     
-    vectorstore = _build_vectorstore(books_df, embeddings_model, cache, settings)
+    vectorstore = _build_vectorstore(books_df, cache, settings)
     
     load_embeddings_cache.clear()
     load_vectorstore.clear()
@@ -125,7 +132,7 @@ def _embed_books(books: list[dict], embeddings_model, cache: dict, settings: Set
     print(f"Embedded {len(books)} new books.")
 
 
-def _build_vectorstore(books_df: pd.DataFrame, embeddings_model, cache: dict, settings: Settings) -> FAISS:
+def _build_vectorstore(books_df: pd.DataFrame, cache: dict, settings: Settings) -> FAISS:
     print("Building vectorstore from cache...")
     
     texts = []
@@ -141,8 +148,7 @@ def _build_vectorstore(books_df: pd.DataFrame, embeddings_model, cache: dict, se
         if pd.isna(text) or not str(text).strip():
             continue
         
-        processed_text = str(text).lower() if settings.lower_embeddings else str(text)
-        texts.append(processed_text)
+        texts.append(str(text))
         embeddings_list.append(cache[book_id])
         metadatas.append({"book_id": book_id, "title": row.get("title", "")})
     
@@ -150,7 +156,7 @@ def _build_vectorstore(books_df: pd.DataFrame, embeddings_model, cache: dict, se
     
     vectorstore = FAISS.from_embeddings(
         text_embeddings=list(zip(texts, embeddings_list)),
-        embedding=embeddings_model,
+        embedding=DummyEmbeddings(),
         metadatas=metadatas
     )
     

@@ -8,17 +8,17 @@ from ml.settings import Settings
 
 
 LOCAL_MODELS = {
-    "qwen-0.6b": "Alibaba-NLP/gte-Qwen2-1.5B-instruct",
-    "gemma-300m": "BAAI/bge-small-en-v1.5",
-    "qwen-8b": "Alibaba-NLP/gte-Qwen2-7B-instruct",
     "minilm": "sentence-transformers/all-MiniLM-L6-v2",
+    "bge-small": "BAAI/bge-small-en-v1.5",
+    "qwen-1.5b": "Alibaba-NLP/gte-Qwen2-1.5B-instruct",
+    "qwen-7b": "Alibaba-NLP/gte-Qwen2-7B-instruct",
 }
 
 LOCAL_MODEL_TO_CACHE = {
-    "qwen-0.6b": "cache-qwen0.6",
-    "gemma-300m": "cache-gemma0.3",
-    "qwen-8b": "cache-qwen8",
     "minilm": "cache-minilm",
+    "bge-small": "cache-bge",
+    "qwen-1.5b": "cache-qwen1.5",
+    "qwen-7b": "cache-qwen7",
 }
 
 CACHE_TO_LOCAL_MODEL = {v: k for k, v in LOCAL_MODEL_TO_CACHE.items()}
