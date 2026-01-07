@@ -52,16 +52,29 @@ def _create_gemini():
     return GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-001")
 
 
+def _get_device() -> str:
+    """Detect best available device for inference."""
+    import torch
+    
+    if torch.cuda.is_available():
+        return "cuda"  # NVIDIA GPU (Windows/Linux)
+    elif torch.backends.mps.is_available():
+        return "mps"   # Apple Metal (macOS)
+    else:
+        return "cpu"   # Fallback
+
+
 def _create_local(model_name: str):
     """Create local HuggingFace embeddings."""
     from langchain_huggingface import HuggingFaceEmbeddings
     
     hf_model = LOCAL_MODELS.get(model_name, LOCAL_MODELS["minilm"])
-    print(f"Loading local model: {hf_model}")
+    device = _get_device()
+    print(f"Loading local model: {hf_model} on {device}")
     
     return HuggingFaceEmbeddings(
         model_name=hf_model,
-        model_kwargs={"device": "mps"},  # Metal on Mac
+        model_kwargs={"device": device},
         encode_kwargs={"normalize_embeddings": True}
     )
 
