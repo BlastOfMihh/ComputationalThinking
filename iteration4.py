@@ -8,7 +8,7 @@ from books_reader import read_books
 from books_reader import normalize_text
 from books_reader import normalize_title_for_sort
 from image_downloader import get_book_cover
-from ml.ui import render_text_recommendations, render_recommendation_results, render_similar_books, render_cache_selector
+from ml.ui import render_text_recommendations, render_recommendation_results, render_similar_books, render_cache_selector, is_ml_enabled
 
 # ---------- Data ----------
 books = read_books("books.csv")
@@ -147,20 +147,29 @@ def sort_by_title(books_list):
 
 st.set_page_config(page_title="Bookscape", layout="wide")
 
-# Render cache selector in sidebar
+# Render cache selector in sidebar (only shows if ML enabled)
 render_cache_selector()
 
 st.title("📚 Bookscape")
 st.caption("thousands of books at your fingertips, through this digital librarian")
 
+# Build options list - include AI only if ML is enabled
+base_options = ["Search by title", "Filter by author", "Sort alphabetically"]
+if is_ml_enabled():
+    base_options.append("🔮 AI Recommendations")
+
 # Initialize option in session state
 if "selected_option" not in st.session_state:
     st.session_state.selected_option = "Search by title"
 
+# Reset to default if current selection is not available
+if st.session_state.selected_option not in base_options:
+    st.session_state.selected_option = "Search by title"
+
 option = st.radio(
     "Choose an option:",
-    ("Search by title", "Filter by author", "Sort alphabetically", "🔮 AI Recommendations"),
-    index=["Search by title", "Filter by author", "Sort alphabetically", "🔮 AI Recommendations"].index(st.session_state.selected_option),
+    base_options,
+    index=base_options.index(st.session_state.selected_option),
     horizontal=True,
     key="option_radio"
 )

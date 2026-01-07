@@ -17,6 +17,11 @@ def _clear_all_ml_caches():
     clear_engine_cache()
 
 
+def is_ml_enabled() -> bool:
+    """Check if ML features are enabled."""
+    return Settings().ml_enabled
+
+
 def _get_engine():
     """Get recommendation engine with loading spinner."""
     try:
@@ -31,8 +36,11 @@ def _get_engine():
 
 
 def render_cache_selector():
-    """Render provider/cache selector in sidebar."""
+    """Render provider/cache selector in sidebar. Does nothing if ML is disabled."""
     settings = Settings()
+    
+    if not settings.ml_enabled:
+        return
     
     # Provider selection
     providers = ["LM Studio", "Gemini API", "Local (llama-cpp)"]
@@ -117,6 +125,7 @@ def render_cache_selector():
 def render_text_recommendations(books_dict: dict) -> Optional[list]:
     """
     Render text-based recommendation search UI.
+    Returns None if ML is disabled.
     
     Args:
         books_dict: Dict mapping book_id to book data
@@ -124,6 +133,9 @@ def render_text_recommendations(books_dict: dict) -> Optional[list]:
     Returns:
         List of (book_id, title, score) tuples if search performed, else None
     """
+    if not is_ml_enabled():
+        return None
+    
     st.subheader("🔮 Find Similar Books by Description")
     
     query = st.text_area(
@@ -165,12 +177,16 @@ def render_text_recommendations(books_dict: dict) -> Optional[list]:
 def render_similar_books(book_id: str, books_dict: dict, display_func: Callable):
     """
     Render similar book recommendations for a given book.
+    Does nothing if ML is disabled.
     
     Args:
         book_id: The book ID to find similar books for
         books_dict: Dict mapping book_id to book data
         display_func: Function to display a single book
     """
+    if not is_ml_enabled():
+        return
+    
     state_key = f"similar_{book_id}"
     
     if state_key not in st.session_state:

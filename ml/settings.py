@@ -42,6 +42,9 @@ class Settings:
         # Provider settings
         self.provider = self._data.get("provider", "lmstudio")
         self.local_model = self._data.get("local_model", "minilm")
+        
+        # Feature flag - set to False to disable all ML features
+        self.ml_enabled = self._data.get("ml_enabled", True)
     
     @property
     def cache_dir(self) -> Path:
@@ -65,6 +68,7 @@ class Settings:
         self._data["cache_dir"] = self.cache_dir_name
         self._data["provider"] = self.provider
         self._data["local_model"] = self.local_model
+        self._data["ml_enabled"] = self.ml_enabled
         
         with open(self._settings_path, "w") as f:
             json.dump(self._data, f, indent=4)

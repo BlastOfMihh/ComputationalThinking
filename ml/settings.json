@@ -8,5 +8,6 @@
     "lower_embeddings": true,
     "provider": "local",
     "local_model": "minilm",
-    "batch_delay_seconds": 1
+    "batch_delay_seconds": 1,
+    "ml_enabled": false
 }
