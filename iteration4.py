@@ -1,10 +1,14 @@
 import os
+
+# Fix OpenMP duplicate library issue on macOS (must be before any ML imports)
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
 import streamlit as st
 from books_reader import read_books
 from books_reader import normalize_text
 from books_reader import normalize_title_for_sort
 from image_downloader import get_book_cover
-from ml_ui import render_text_recommendations, render_recommendation_results, render_similar_books, render_cache_selector
+from ml.ui import render_text_recommendations, render_recommendation_results, render_similar_books, render_cache_selector
 
 # ---------- Data ----------
 books = read_books("books.csv")
