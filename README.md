@@ -19,3 +19,9 @@ Iteration 4. Data processing, predictions OR machine learning method OR regressi
 - to run the app write this in terminal:
 
 `python -m streamlit run yourscript.py`
+
+
+
+notes for me :
+
+is to lower case actually relevant?? in practice
