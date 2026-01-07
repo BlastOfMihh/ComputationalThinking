@@ -1,6 +1,3 @@
-"""
-Streamlit UI components for ML recommendations.
-"""
 import streamlit as st
 from typing import Callable, Optional
 
@@ -11,23 +8,19 @@ from ml.recommendation_engine import get_recommendation_engine, clear_engine_cac
 
 
 def _clear_all_ml_caches():
-    """Clear all ML-related Streamlit caches."""
     clear_embeddings_cache()
     clear_cache_caches()
     clear_engine_cache()
 
 
 def is_ml_enabled() -> bool:
-    """Check if ML features are enabled."""
     return Settings().ml_enabled
 
 
 def _get_engine():
-    """Get recommendation engine with loading spinner."""
     try:
         with st.spinner("Loading recommendation engine..."):
             engine = get_recommendation_engine()
-            # Force initialization
             engine._ensure_initialized()
             return engine
     except Exception as e:
@@ -36,13 +29,11 @@ def _get_engine():
 
 
 def render_cache_selector():
-    """Render provider/cache selector in sidebar. Does nothing if ML is disabled."""
     settings = Settings()
     
     if not settings.ml_enabled:
         return
     
-    # Provider selection
     providers = ["LM Studio", "Gemini API", "Local (llama-cpp)"]
     provider_map = {"LM Studio": "lmstudio", "Gemini API": "gemini", "Local (llama-cpp)": "local"}
     reverse_map = {v: k for k, v in provider_map.items()}
@@ -57,7 +48,6 @@ def render_cache_selector():
     )
     new_provider = provider_map[provider_label]
     
-    # Cache/model selection based on provider
     if new_provider == "gemini":
         selected_cache = "cache-gemini"
         selected_local_model = settings.local_model
@@ -81,7 +71,7 @@ def render_cache_selector():
         )
         selected_cache = LOCAL_MODEL_TO_CACHE.get(selected_local_model, f"cache-{selected_local_model}")
         
-    else:  # lmstudio
+    else:
         cache_options = [
             d.name for d in settings.ml_dir.iterdir()
             if d.is_dir() and d.name.startswith("cache") and d.name != "cache-gemini"
@@ -101,7 +91,6 @@ def render_cache_selector():
         
         selected_local_model = CACHE_TO_LOCAL_MODEL.get(selected_cache, settings.local_model)
     
-    # Check if settings changed
     provider_changed = new_provider != settings.provider
     cache_changed = selected_cache != settings.cache_dir_name
     local_model_changed = selected_local_model != settings.local_model
@@ -109,13 +98,11 @@ def render_cache_selector():
     settings_changed = provider_changed or cache_changed or local_model_changed
     
     if settings_changed:
-        # Update settings
         settings.cache_dir_name = selected_cache
         settings.provider = new_provider
         settings.local_model = selected_local_model
         settings.save()
         
-        # Clear all ML caches - Streamlit will reload with new settings
         _clear_all_ml_caches()
         
         st.sidebar.success("Settings updated. Reloading...")
@@ -123,16 +110,6 @@ def render_cache_selector():
 
 
 def render_text_recommendations(books_dict: dict) -> Optional[list]:
-    """
-    Render text-based recommendation search UI.
-    Returns None if ML is disabled.
-    
-    Args:
-        books_dict: Dict mapping book_id to book data
-        
-    Returns:
-        List of (book_id, title, score) tuples if search performed, else None
-    """
     if not is_ml_enabled():
         return None
     
@@ -175,15 +152,6 @@ def render_text_recommendations(books_dict: dict) -> Optional[list]:
 
 
 def render_similar_books(book_id: str, books_dict: dict, display_func: Callable):
-    """
-    Render similar book recommendations for a given book.
-    Does nothing if ML is disabled.
-    
-    Args:
-        book_id: The book ID to find similar books for
-        books_dict: Dict mapping book_id to book data
-        display_func: Function to display a single book
-    """
     if not is_ml_enabled():
         return
     
@@ -217,7 +185,6 @@ def render_similar_books(book_id: str, books_dict: dict, display_func: Callable)
         st.info("No embedding available for this book.")
         return
     
-    # Filter out source book
     results = [(bid, title, score) for bid, title, score in results if bid != book_id][:num_results]
     
     if not results:
@@ -236,14 +203,6 @@ def render_similar_books(book_id: str, books_dict: dict, display_func: Callable)
 
 
 def render_recommendation_results(results: list, books_dict: dict, display_func: Callable):
-    """
-    Display recommendation results.
-    
-    Args:
-        results: List of (book_id, title, score) tuples
-        books_dict: Dict mapping book_id to book data
-        display_func: Function to display a single book
-    """
     for book_id, title, score in results:
         if book_id in books_dict:
             with st.container():

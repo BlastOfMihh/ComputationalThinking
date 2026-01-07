@@ -1,7 +1,3 @@
-"""
-Embedding provider factory.
-Uses Streamlit's cache_resource for proper lifecycle management.
-"""
 import os
 from pathlib import Path
 from typing import Any
@@ -11,7 +7,6 @@ import streamlit as st
 from ml.settings import Settings
 
 
-# Model mappings
 LOCAL_MODELS = {
     "qwen-0.6b": "Alibaba-NLP/gte-Qwen2-1.5B-instruct",
     "gemma-300m": "BAAI/bge-small-en-v1.5",
@@ -30,7 +25,6 @@ CACHE_TO_LOCAL_MODEL = {v: k for k, v in LOCAL_MODEL_TO_CACHE.items()}
 
 
 def _create_lmstudio():
-    """Create LM Studio embeddings (requires server running)."""
     from langchain_openai import OpenAIEmbeddings
     return OpenAIEmbeddings(
         base_url="http://localhost:1234/v1",
@@ -40,7 +34,6 @@ def _create_lmstudio():
 
 
 def _create_gemini():
-    """Create Google Gemini embeddings."""
     api_key_path = Path(__file__).parent / "api_key.txt"
     with open(api_key_path) as f:
         api_key = f.read().strip()
@@ -53,19 +46,17 @@ def _create_gemini():
 
 
 def _get_device() -> str:
-    """Detect best available device for inference."""
     import torch
     
     if torch.cuda.is_available():
-        return "cuda"  # NVIDIA GPU (Windows/Linux)
+        return "cuda"
     elif torch.backends.mps.is_available():
-        return "mps"   # Apple Metal (macOS)
+        return "mps"
     else:
-        return "cpu"   # Fallback
+        return "cpu"
 
 
 def _create_local(model_name: str):
-    """Create local HuggingFace embeddings."""
     from langchain_huggingface import HuggingFaceEmbeddings
     
     hf_model = LOCAL_MODELS.get(model_name, LOCAL_MODELS["minilm"])
@@ -81,17 +72,6 @@ def _create_local(model_name: str):
 
 @st.cache_resource
 def get_embeddings(provider: str, local_model: str) -> Any:
-    """
-    Get or create embeddings model.
-    Cached by Streamlit - changes to args will create new instance.
-    
-    Args:
-        provider: "lmstudio", "gemini", or "local"
-        local_model: Model name for local provider
-        
-    Returns:
-        LangChain embeddings model
-    """
     print(f"Creating embeddings: provider={provider}, local_model={local_model}")
     
     if provider == "lmstudio":
@@ -105,11 +85,9 @@ def get_embeddings(provider: str, local_model: str) -> Any:
 
 
 def get_current_embeddings() -> Any:
-    """Get embeddings model for current settings."""
     settings = Settings()
     return get_embeddings(settings.provider, settings.local_model)
 
 
 def clear_embeddings_cache():
-    """Clear the embeddings cache to force reload."""
     get_embeddings.clear()
