@@ -212,3 +212,9 @@ ml/api_key.txt
 # Downloaded book covers (keep folder, ignore images)
 covers/*
 !covers/.gitkeep
+
+
+ml/models/
+ml/cache-*/
+*.pkl
+*.gguf
