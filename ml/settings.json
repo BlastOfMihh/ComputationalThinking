@@ -1,12 +1,12 @@
 {
-    "cache_dir": "cache-bge",
+    "cache_dir": "cache-minilm",
     "embeddings_cache_file": "embeddings_cache.pkl",
     "faiss_index_dir": "faiss_index",
     "batch_size": 512,
     "books_path": "../books.csv",
     "text_column": "description",
     "provider": "local",
-    "local_model": "bge-small",
+    "local_model": "minilm",
     "batch_delay_seconds": 0,
     "ml_enabled": true
 }
