@@ -20,3 +20,6 @@ faiss-cpu>=1.13.0
 # Local embeddings
 sentence-transformers>=3.0.0
 torch>=2.0.0
+
+# plotting 
+matplotlib>=3.7.0
