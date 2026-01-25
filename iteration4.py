@@ -180,7 +180,7 @@ st.title("📚 Bookscape")
 st.caption("thousands of books at your fingertips, through this digital librarian")
 
 # Build options list - include AI only if ML is enabled
-base_options = ["Search by title", "Filter by author", "Sort alphabetically", "Top authors", "Top publishers", "Books per year"]
+base_options = ["Search by title", "Filter by author", "Sort alphabetically", "📊 Top authors", "📊 Top publishers", "📊 Books per year"]
 if is_ml_enabled():
     base_options.append("🔮 AI Recommendations")
 
@@ -349,9 +349,9 @@ elif option == "Sort alphabetically":
 
 
 # ---------- OPTION 4: Top authors in recent years ----------
-elif option == "Top authors":
+elif option == "📊 Top authors":
     st.subheader("� Top Authors from the Last 10 Years (2010–2020)")
-
+    st.subheader("📚 Top Authors from the Last 10 Years (2010–2020)")
     min_books = st.slider("Minimum number of books by author", min_value=1, max_value=100, value=2)
     top_n = st.slider("How many top authors to show?", min_value=5, max_value=20, value=10)
 
@@ -386,22 +386,28 @@ elif option == "Top authors":
         st.warning("No authors match the selected filters.")
         st.stop()
 
-    fig, ax1 = plt.subplots(figsize=(10, 5))
+    fig, ax1 = plt.subplots(figsize=(12, 6))
+    plt.style.use('seaborn-v0_8-whitegrid')
 
     ax2 = ax1.twinx()
-    stats.plot(kind="bar", x="author", y="num_books", ax=ax1, color="skyblue", legend=False)
-    stats.plot(kind="line", x="author", y="avg_rating", ax=ax2, color="red", marker='o', legend=False)
+    bars = ax1.bar(stats["author"], stats["num_books"], color='#4C72B0', alpha=0.8, label='Number of Books')
+    line = ax2.plot(stats["author"], stats["avg_rating"], color='#C44E52', marker='o', linewidth=2, markersize=8, label='Avg Rating')
 
-    ax1.set_ylabel("Number of Books")
-    ax2.set_ylabel("Average Rating")
-    ax1.set_title("Top Authors by Books and Rating (2010–2020)")
-    ax1.set_xticklabels(stats["author"], rotation=45, ha="right")
+    ax1.set_ylabel("Number of Books", fontsize=12, fontweight='bold')
+    ax2.set_ylabel("Average Rating", fontsize=12, fontweight='bold', color='#C44E52')
+    ax1.set_xlabel("Author", fontsize=12, fontweight='bold')
+    ax1.set_title("Top Authors by Books and Rating (2010–2020)", fontsize=14, fontweight='bold', pad=15)
+    plt.xticks(rotation=45, ha="right")
+    
+    ax1.legend(loc='upper left')
+    ax2.legend(loc='upper right')
+    plt.tight_layout()
 
     st.pyplot(fig)
 
 
 # ---------- OPTION 5: Top publishers ----------
-elif option == "Top publishers":
+elif option == "📊 Top publishers":
     st.subheader("🏢 Top Publishers by Number of Books")
 
     df = pd.DataFrame(books)
@@ -417,18 +423,27 @@ elif option == "Top publishers":
 
     st.markdown(f"**Most published publisher:** `{top_publisher_name}` — **{top_publisher_count} books**")
 
-    fig, ax = plt.subplots(figsize=(10, 5))
-    top_publishers.plot(kind="bar", color="skyblue", ax=ax)
-    ax.set_title("Top 10 Publishers by Number of Books")
-    ax.set_ylabel("Number of Books")
-    ax.set_xlabel("Publisher")
-    ax.set_xticklabels(top_publishers.index, rotation=45, ha="right")
+    fig, ax = plt.subplots(figsize=(12, 6))
+    plt.style.use('seaborn-v0_8-whitegrid')
+    
+    colors = plt.cm.Blues(range(50, 250, 20))
+    bars = ax.bar(top_publishers.index, top_publishers.values, color=colors, edgecolor='navy', alpha=0.85)
+    
+    ax.set_title("Top 10 Publishers by Number of Books", fontsize=14, fontweight='bold', pad=15)
+    ax.set_ylabel("Number of Books", fontsize=12, fontweight='bold')
+    ax.set_xlabel("Publisher", fontsize=12, fontweight='bold')
+    plt.xticks(rotation=45, ha="right")
+    
+    for bar, val in zip(bars, top_publishers.values):
+        ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 1, str(val), 
+                ha='center', va='bottom', fontsize=9, fontweight='bold')
+    
     plt.tight_layout()
     st.pyplot(fig)
 
 
 # ---------- OPTION 6: Books per year ----------
-elif option == "Books per year":
+elif option == "📊 Books per year":
     st.subheader("📅 Books Published per Year")
 
     df = pd.DataFrame(books)
@@ -456,13 +471,20 @@ elif option == "Books per year":
         f"({books_per_year[fewest_books_year]} books)"
     )
 
-    fig, ax = plt.subplots(figsize=(12, 5))
-    books_per_year.plot(kind="bar", ax=ax)
+    fig, ax = plt.subplots(figsize=(14, 6))
+    plt.style.use('seaborn-v0_8-whitegrid')
+    
+    ax.fill_between(books_per_year.index, books_per_year.values, alpha=0.3, color='#4C72B0')
+    ax.plot(books_per_year.index, books_per_year.values, color='#4C72B0', linewidth=2)
+    
+    ax.scatter([most_books_year], [books_per_year[most_books_year]], color='#55A868', s=100, zorder=5, label=f'Peak: {most_books_year}')
 
-    ax.set_title("Number of Books Published per Year")
-    ax.set_xlabel("Year")
-    ax.set_ylabel("Number of Books")
-    ax.set_xticklabels(books_per_year.index, rotation=45, ha="right")
+    ax.set_title("Number of Books Published per Year", fontsize=14, fontweight='bold', pad=15)
+    ax.set_xlabel("Year", fontsize=12, fontweight='bold')
+    ax.set_ylabel("Number of Books", fontsize=12, fontweight='bold')
+    ax.set_xticks(range(1900, 2025, 10))
+    ax.legend()
+    plt.tight_layout()
 
     st.pyplot(fig)
 
