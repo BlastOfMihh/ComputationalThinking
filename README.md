@@ -12,9 +12,27 @@ Iteration 4. Data processing, predictions OR machine learning method OR regressi
 
 ### Tech requirements:
 
+- create a virtual environment for python with:
+  - open Git Bash and go to folder path
+
+  ```bash
+  cd /d/Documents/MASTER/DS/sem1/computationalThinking/ComputationalThinking/
+  ```
+
+  - create environment
+
+  ```bash
+  python -m venv .venv
+  source .venv/Scripts/activate
+  ```
+
 - make sure to install all dependencies with:
 
 `python -m pip install [packages]`
+
+or
+
+`pip install -r requirements.txt`
 
 - to run the app write this in terminal:
 
@@ -32,9 +50,9 @@ Edit `ml/settings.json`:
 
 ```json
 {
-    "ml_enabled": true,
-    "provider": "local",
-    "local_model": "minilm"
+  "ml_enabled": true,
+  "provider": "local",
+  "local_model": "minilm"
 }
 ```
 
@@ -44,11 +62,11 @@ Set `"ml_enabled": false` to hide all ML features.
 
 ### Providers
 
-| Provider | Setup |
-|----------|-------|
-| `local` | No setup needed. Models: `minilm`, `gemma-300m`, `qwen-0.6b`, `qwen-8b` |
-| `lmstudio` | Run [LM Studio](https://lmstudio.ai/) server on port 1234 |
-| `gemini` | Add API key to `ml/api_key.txt` |
+| Provider   | Setup                                                                   |
+| ---------- | ----------------------------------------------------------------------- |
+| `local`    | No setup needed. Models: `minilm`, `gemma-300m`, `qwen-0.6b`, `qwen-8b` |
+| `lmstudio` | Run [LM Studio](https://lmstudio.ai/) server on port 1234               |
+| `gemini`   | Add API key to `ml/api_key.txt`                                         |
 
 First run generates embeddings for all books (~5 min). Cached for subsequent runs.
 
