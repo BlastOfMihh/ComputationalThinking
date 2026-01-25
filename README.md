@@ -57,6 +57,8 @@ This iteration extends the core features by adding visual insights and filtering
 ### Caching
 Used cached embeddings and Vectorized DB in order to ensure scalability and performance.
 
+When using for the first time the AI features there will be a cold start for the caching(the progress can be tracked in the terminal).
+
 ### Configuration File
 
 Edit `ml/settings.json`:
