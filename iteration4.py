@@ -4,9 +4,12 @@ import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
 from books_reader import read_books
 from books_reader import normalize_text
 from books_reader import normalize_title_for_sort
+from books_reader import parse_float
 from image_downloader import get_book_cover
 from ml.ui import render_text_recommendations, render_recommendation_results, render_similar_books, render_cache_selector, is_ml_enabled
 
@@ -143,6 +146,29 @@ def sort_by_title(books_list):
     )
     return sorted_list
 
+
+def extract_year_safe(date_str):
+    import re
+    if not isinstance(date_str, str):
+        return None
+    match = re.search(r"(\d{4})", date_str)
+    if match:
+        year = int(match.group(1))
+        if 1900 <= year <= 2024:
+            return year
+    return None
+
+
+def extract_year(date_str):
+    import re
+    if not date_str:
+        return None
+    match = re.search(r"(\d{4})", date_str)
+    if match:
+        year = int(match.group(1))
+        return year if 1000 <= year <= 2020 else None
+    return None
+
 # ---------- App UI ----------
 
 st.set_page_config(page_title="Bookscape", layout="wide")
@@ -154,7 +180,7 @@ st.title("📚 Bookscape")
 st.caption("thousands of books at your fingertips, through this digital librarian")
 
 # Build options list - include AI only if ML is enabled
-base_options = ["Search by title", "Filter by author", "Sort alphabetically"]
+base_options = ["Search by title", "Filter by author", "Sort alphabetically", "Top authors", "Top publishers", "Books per year"]
 if is_ml_enabled():
     base_options.append("🔮 AI Recommendations")
 
@@ -322,7 +348,126 @@ elif option == "Sort alphabetically":
         display_book(book, show_similar=True)
 
 
-# ---------- OPTION 4: AI Recommendations ----------
+# ---------- OPTION 4: Top authors in recent years ----------
+elif option == "Top authors":
+    st.subheader("� Top Authors from the Last 10 Years (2010–2020)")
+
+    min_books = st.slider("Minimum number of books by author", min_value=1, max_value=100, value=2)
+    top_n = st.slider("How many top authors to show?", min_value=5, max_value=20, value=10)
+
+    filtered_recent = [b for b in books if b.get("publishDate")]
+
+    recent_books = []
+    for b in filtered_recent:
+        year = extract_year(b["publishDate"])
+        if year and 2010 <= year <= 2020:
+            recent_books.append({
+                "author": b["author"],
+                "title": b["title"],
+                "rating": parse_float(b.get("rating"))
+            })
+
+    df = pd.DataFrame(recent_books)
+
+    if df.empty:
+        st.warning("No books found in this time range.")
+        st.stop()
+
+    stats = (
+        df.groupby("author")
+        .agg(num_books=("title", "count"), avg_rating=("rating", "mean"))
+        .reset_index()
+    )
+
+    stats = stats[stats["num_books"] >= min_books]
+    stats = stats.sort_values(by="num_books", ascending=False).head(top_n)
+
+    if stats.empty:
+        st.warning("No authors match the selected filters.")
+        st.stop()
+
+    fig, ax1 = plt.subplots(figsize=(10, 5))
+
+    ax2 = ax1.twinx()
+    stats.plot(kind="bar", x="author", y="num_books", ax=ax1, color="skyblue", legend=False)
+    stats.plot(kind="line", x="author", y="avg_rating", ax=ax2, color="red", marker='o', legend=False)
+
+    ax1.set_ylabel("Number of Books")
+    ax2.set_ylabel("Average Rating")
+    ax1.set_title("Top Authors by Books and Rating (2010–2020)")
+    ax1.set_xticklabels(stats["author"], rotation=45, ha="right")
+
+    st.pyplot(fig)
+
+
+# ---------- OPTION 5: Top publishers ----------
+elif option == "Top publishers":
+    st.subheader("🏢 Top Publishers by Number of Books")
+
+    df = pd.DataFrame(books)
+    df = df[df["publisher"].notna() & (df["publisher"].str.strip() != "")]
+
+    if df.empty:
+        st.warning("No publisher data available.")
+        st.stop()
+
+    top_publishers = df["publisher"].value_counts().head(10)
+    top_publisher_name = top_publishers.index[0]
+    top_publisher_count = top_publishers.iloc[0]
+
+    st.markdown(f"**Most published publisher:** `{top_publisher_name}` — **{top_publisher_count} books**")
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    top_publishers.plot(kind="bar", color="skyblue", ax=ax)
+    ax.set_title("Top 10 Publishers by Number of Books")
+    ax.set_ylabel("Number of Books")
+    ax.set_xlabel("Publisher")
+    ax.set_xticklabels(top_publishers.index, rotation=45, ha="right")
+    plt.tight_layout()
+    st.pyplot(fig)
+
+
+# ---------- OPTION 6: Books per year ----------
+elif option == "Books per year":
+    st.subheader("📅 Books Published per Year")
+
+    df = pd.DataFrame(books)
+    df["year"] = df["publishDate"].apply(extract_year_safe)
+    df = df.dropna(subset=["year"])
+    df["year"] = df["year"].astype(int)
+
+    if df.empty:
+        st.warning("No valid publication year data available.")
+        st.stop()
+
+    books_per_year = df["year"].value_counts().sort_index()
+    books_per_year = books_per_year.reindex(range(1900, 2025), fill_value=0)
+
+    most_books_year = books_per_year.idxmax()
+    fewest_books_year = books_per_year.idxmin()
+
+    st.markdown(
+        f"**Year with most books published:** {most_books_year} "
+        f"({books_per_year[most_books_year]} books)"
+    )
+
+    st.markdown(
+        f"**Year with fewest books published:** {fewest_books_year} "
+        f"({books_per_year[fewest_books_year]} books)"
+    )
+
+    fig, ax = plt.subplots(figsize=(12, 5))
+    books_per_year.plot(kind="bar", ax=ax)
+
+    ax.set_title("Number of Books Published per Year")
+    ax.set_xlabel("Year")
+    ax.set_ylabel("Number of Books")
+    ax.set_xticklabels(books_per_year.index, rotation=45, ha="right")
+
+    st.pyplot(fig)
+
+
+# ---------- OPTION 7: AI Recommendations ----------
 elif option == "🔮 AI Recommendations":
     results = render_text_recommendations(books_dict)
     
