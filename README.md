@@ -1,12 +1,12 @@
 # Bookscape
 
-This is a library app project with thousands of books that allows sorting, filtering, searching, as well as computational methods, plots and statistics.
+This is a library app project with thousands of books that allows sorting, filtering, searching, as well as computational methods, plots and statistics, recommandation engine and semantic search.
 
 It is separated into 4 iterations, each with its own functionality:
 
 ### Iteration 1 : MVP
 
-Created a small project using streamlit, used mock library with 15 books
+Developed small project using Streamlit, based on a mock library consisting of 15 books. We also implemented basic operations for managing the collection of entities, including searching, filtering and sorting.
 
 ### Iteration 2 : New Dataset and Cleaning
 
