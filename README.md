@@ -1,5 +1,10 @@
 # Bookscape
 
+Team members:
+- Turcu Mihnea-Alexandru
+- Sasaran Tania
+- Huma Niculina
+
 This is a library app project with thousands of books that allows sorting, filtering, searching, as well as computational methods, plots and statistics, recommandation engine and semantic search.
 
 It is separated into 4 iterations, each with its own functionality:
